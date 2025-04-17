@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recomendaciones - Streaming</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+
+        /* Estilos adicionales para las imágenes */
+        .poster-container {
+            position: relative;
+            width: 100%;
+            padding-top: 150%; /* Relación de aspecto 2:3 */
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .poster {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .item:hover .poster-container {
+            transform: scale(1.05);
+        }
+        
+        .item {
+            width: 200px;
+            min-width: 200px;
+            margin: 0 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .item .titulo {
+            display: block;
+            font-weight: bold;
+            margin: 8px 0 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .item .generos {
+            display: block;
+            font-size: 0.8em;
+            color: #777;
+            margin-bottom: 8px;
+            height: 2.4em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .acciones {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .like, .dislike {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+        }
+        
+        .like:hover, .dislike:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        
+        .like.active, .dislike.active {
+            opacity: 1;
+        }
+        
+        .like.active {
+            color: #4CAF50;
+        }
+        
+        .dislike.active {
+            color: #F44336;
+        }
+    </style>
+</head>
+<body>
+<header style="display: flex; align-items: center; justify-content: space-between; padding: 10px;">
+    <div style="display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='icons/logo.webp') }}" alt="Logo" style="height: 40px; margin-right: 15px;">
+        <h1 style="margin: 0;">Recomendaciones para ti</h1>
+    </div>
+    <a href="/" class="cambiar-usuario">Cambiar usuario</a>
+</header>
+    <main>
+        {% if user_id %}
+            <div class="user-info">
+                <img src="{{ info_usuario.icono }}" alt="Icono de perfil" class="user-icon">
+                <h2>{{ info_usuario.nombre }} {{ info_usuario.apellido }}</h2>
+            </div>
+            {% if recomendaciones.total %}
+                <div class="actualizar-container">
+                    <button class="actualizar-btn" onclick="window.location.reload()">Actualizar recomendaciones</button>
+                </div>
+
+                <h3>Para ti (Basado en: {{ recomendaciones.generos | join(', ') }})</h3>
+                <div class="carrusel-container">
+                    <button class="carrusel-btn prev" data-carrusel="total">◄</button>
+                    <div class="carrusel" id="carrusel-total">
+                        {% for item, generos in recomendaciones.total %}
+                            <div class="item">
+                                <div class="poster-container">
+                                    <img src="{{ posters.get(item, default_poster) }}" alt="{{ item }}" class="poster">
+                                </div>
+                                <span class="titulo">{{ item }}</span>
+                                <span class="generos">{{ generos|join(', ') }}</span>
+                                <div class="acciones">
+                                    <form method="POST" action="/actualizar_preferencias" class="accion-form">
+                                        <input type="hidden" name="user_id" value="{{ user_id }}">
+                                        <input type="hidden" name="titulo" value="{{ item }}">
+                                        <button type="submit" name="accion" value="like" class="like {% if preferencias_usuario.get(item) == 'like' %}active{% endif %}">👍</button>
+                                        <button type="submit" name="accion" value="dislike" class="dislike {% if preferencias_usuario.get(item) == 'dislike' %}active{% endif %}">👎</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button class="carrusel-btn next" data-carrusel="total">►</button>
+                </div>
+
+                <h3>Películas recomendadas</h3>
+                <div class="carrusel-container">
+                    <button class="carrusel-btn prev" data-carrusel="peliculas">◄</button>
+                    <div class="carrusel" id="carrusel-peliculas">
+                        {% for pelicula, generos in recomendaciones.peliculas %}
+                            <div class="item">
+                                <div class="poster-container">
+                                    <img src="{{ posters.get(pelicula, default_poster) }}" alt="{{ pelicula }}" class="poster">
+                                </div>
+                                <span class="titulo">{{ pelicula }}</span>
+                                <span class="generos">{{ generos|join(', ') }}</span>
+                                <div class="acciones">
+                                    <form method="POST" action="/actualizar_preferencias" class="accion-form">
+                                        <input type="hidden" name="user_id" value="{{ user_id }}">
+                                        <input type="hidden" name="titulo" value="{{ pelicula }}">
+                                        <button type="submit" name="accion" value="like" class="like {% if preferencias_usuario.get(pelicula) == 'like' %}active{% endif %}">👍</button>
+                                        <button type="submit" name="accion" value="dislike" class="dislike {% if preferencias_usuario.get(pelicula) == 'dislike' %}active{% endif %}">👎</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button class="carrusel-btn next" data-carrusel="peliculas">►</button>
+                </div>
+
+                <h3>Series recomendadas</h3>
+                <div class="carrusel-container">
+                    <button class="carrusel-btn prev" data-carrusel="series">◄</button>
+                    <div class="carrusel" id="carrusel-series">
+                        {% for serie, generos in recomendaciones.series %}
+                            <div class="item">
+                                <div class="poster-container">
+                                    <img src="{{ posters.get(serie, default_poster) }}" alt="{{ serie }}" class="poster">
+                                </div>
+                                <span class="titulo">{{ serie }}</span>
+                                <span class="generos">{{ generos|join(', ') }}</span>
+                                <div class="acciones">
+                                    <form method="POST" action="/actualizar_preferencias" class="accion-form">
+                                        <input type="hidden" name="user_id" value="{{ user_id }}">
+                                        <input type="hidden" name="titulo" value="{{ serie }}">
+                                        <button type="submit" name="accion" value="like" class="like {% if preferencias_usuario.get(serie) == 'like' %}active{% endif %}">👍</button>
+                                        <button type="submit" name="accion" value="dislike" class="dislike {% if preferencias_usuario.get(serie) == 'dislike' %}active{% endif %}">👎</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button class="carrusel-btn next" data-carrusel="series">►</button>
+                </div>
+
+                <h3>Descubre Algo Nuevo</h3>
+                <div class="carrusel-container">
+                    <button class="carrusel-btn prev" data-carrusel="descubrimientos">◄</button>
+                    <div class="carrusel" id="carrusel-descubrimientos">
+                        {% for item, generos in recomendaciones.descubrimientos %}
+                            <div class="item descubrimiento">
+                                <div class="poster-container">
+                                    <img src="{{ posters.get(item, default_poster) }}" alt="{{ item }}" class="poster">
+                                </div>
+                                <span class="titulo">{{ item }}</span>
+                                <span class="generos">{{ generos|join(', ') }}</span>
+                                <div class="acciones">
+                                    <form method="POST" action="/actualizar_preferencias" class="accion-form">
+                                        <input type="hidden" name="user_id" value="{{ user_id }}">
+                                        <input type="hidden" name="titulo" value="{{ item }}">
+                                        <button type="submit" name="accion" value="like" class="like {% if preferencias_usuario.get(item) == 'like' %}active{% endif %}">👍</button>
+                                        <button type="submit" name="accion" value="dislike" class="dislike {% if preferencias_usuario.get(item) == 'dislike' %}active{% endif %}">👎</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button class="carrusel-btn next" data-carrusel="descubrimientos">►</button>
+                </div>
+            {% else %}
+                <p>No hay recomendaciones disponibles para este usuario.</p>
+            {% endif %}
+        {% endif %}
+    </main>
+    <script src="{{ url_for('static', filename='carrusel.js') }}"></script>
+    <script src="{{ url_for('static', filename='acciones.js') }}"></script>
+</body>
+</html>
